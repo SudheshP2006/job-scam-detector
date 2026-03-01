@@ -1,9 +1,51 @@
 from datetime import datetime
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, Response
 import sqlite3
+import os
+import csv
+from io import StringIO
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
+
+
+# ================= SCAM DETECTION FUNCTION =================
+def detect_scam(job_text):
+    job_lower = job_text.lower()
+
+    scam_keywords = [
+        "registration fee",
+        "processing fee",
+        "pay first",
+        "send money",
+        "investment",
+        "otp",
+        "bank details",
+        "earn money",
+        "earn 50000",
+        "work from home",
+        "no experience",
+        "limited time",
+        "urgent hiring",
+        "whatsapp only",
+        "telegram",
+        "click link"
+    ]
+
+    matched_keywords = [word for word in scam_keywords if word in job_lower]
+
+    score = len(matched_keywords)
+    confidence = min(score * 25, 100)
+
+    if score >= 1:
+        result = "SCAM DETECTED ⚠️"
+        color = "danger"
+    else:
+        result = "SAFE JOB ✅"
+        color = "success"
+
+    return result, color, confidence, matched_keywords
+
 
 # ================= HOME =================
 @app.route("/")
@@ -38,41 +80,11 @@ def logout():
 @app.route("/check", methods=["POST"])
 def check():
     job_text = request.form["job"]
-    job_lower = job_text.lower()
 
-    scam_keywords = [
-        "registration",
-        "otp",
-        "processing",
-        "fee",
-        "payment",
-        "send money",
-        "investment",
-        "pay first",
-        "urgent",
-        "limited time"
-    ]
+    result, color, confidence, matched_keywords = detect_scam(job_text)
 
-    matched_keywords = []
-
-    for word in scam_keywords:
-        if word in job_lower:
-            matched_keywords.append(word)
-
-    score = len(matched_keywords)
-    confidence = min(score * 15, 100)
-
-    if score >= 2:
-        result = "SCAM DETECTED ⚠️"
-        color = "danger"
-    else:
-        result = "SAFE JOB ✅"
-        color = "success"
-
-    # 🔥 CURRENT DATE & TIME
     now = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
 
-    # ================= SAVE TO DATABASE =================
     conn = sqlite3.connect("history.db")
     cursor = conn.cursor()
 
@@ -117,11 +129,7 @@ def admin():
     total = len(rows)
     scam = len([r for r in rows if "SCAM" in r[2]])
     safe = len([r for r in rows if "SAFE" in r[2]])
-
-    if total > 0:
-        avg_conf = sum(r[3] for r in rows) / total
-    else:
-        avg_conf = 0
+    avg_conf = round(sum(r[3] for r in rows) / total, 2) if total > 0 else 0
 
     conn.close()
 
@@ -130,9 +138,10 @@ def admin():
                            total=total,
                            scam=scam,
                            safe=safe,
-                           avg_conf=round(avg_conf, 2))
+                           avg_conf=avg_conf)
 
-# ================= DELETE ROUTE =================
+
+# ================= DELETE =================
 @app.route("/delete/<int:id>")
 def delete(id):
     if not session.get("admin"):
@@ -146,7 +155,9 @@ def delete(id):
     conn.close()
 
     return redirect(url_for("admin"))
-# ================= EDIT PAGE =================
+
+
+# ================= EDIT =================
 @app.route("/edit/<int:id>")
 def edit(id):
     if not session.get("admin"):
@@ -161,37 +172,17 @@ def edit(id):
     conn.close()
 
     return render_template("edit.html", row=row)
-# ================= UPDATE FUNCTION =================
+
+
+# ================= UPDATE =================
 @app.route("/update/<int:id>", methods=["POST"])
 def update(id):
     if not session.get("admin"):
         return redirect(url_for("login"))
 
     new_text = request.form["job"]
-    job_lower = new_text.lower()
 
-    scam_keywords = [
-        "registration",
-        "otp",
-        "processing",
-        "fee",
-        "payment",
-        "send money",
-        "investment",
-        "pay first",
-        "urgent",
-        "limited time"
-    ]
-
-    matched = [word for word in scam_keywords if word in job_lower]
-
-    score = len(matched)
-    confidence = min(score * 15, 100)
-
-    if score >= 2:
-        result = "SCAM DETECTED ⚠️"
-    else:
-        result = "SAFE JOB ✅"
+    result, _, confidence, _ = detect_scam(new_text)
 
     conn = sqlite3.connect("history.db")
     cursor = conn.cursor()
@@ -206,8 +197,6 @@ def update(id):
     conn.close()
 
     return redirect(url_for("admin"))
-import csv
-from flask import Response
 
 
 # ================= EXPORT CSV =================
@@ -222,12 +211,8 @@ def export_csv():
     rows = cursor.fetchall()
     conn.close()
 
-    import csv
-    from io import StringIO
-    from flask import Response
-
     si = StringIO()
-    cw = csv.writer(si, quoting=csv.QUOTE_ALL)  # 🔥 Important
+    cw = csv.writer(si, quoting=csv.QUOTE_ALL)
 
     cw.writerow(["ID", "Job Text", "Result", "Confidence", "Created At"])
 
@@ -235,16 +220,14 @@ def export_csv():
         clean_text = row[1].replace("\n", " ").replace("\r", " ")
         cw.writerow([row[0], clean_text, row[2], row[3], row[4]])
 
-    output = si.getvalue()
-
     return Response(
-        output,
+        si.getvalue(),
         mimetype="text/csv",
         headers={"Content-Disposition": "attachment;filename=report.csv"}
     )
-# ================= RUN =================
-import os
 
+
+# ================= RUN =================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
