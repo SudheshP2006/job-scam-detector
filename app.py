@@ -4,47 +4,32 @@ import sqlite3
 import os
 import csv
 from io import StringIO
+import joblib
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
 
+# ================= LOAD ML MODEL =================
+model = joblib.load("model.pkl")
+vectorizer = joblib.load("vectorizer.pkl")
 
-# ================= SCAM DETECTION FUNCTION =================
+
+# ================= SCAM DETECTION (ML BASED) =================
 def detect_scam(job_text):
-    job_lower = job_text.lower()
+    vector = vectorizer.transform([job_text])
+    prediction = model.predict(vector)[0]
+    probability = model.predict_proba(vector)[0][1]
 
-    scam_keywords = [
-        "registration fee",
-        "processing fee",
-        "pay first",
-        "send money",
-        "investment",
-        "otp",
-        "bank details",
-        "earn money",
-        "earn 50000",
-        "work from home",
-        "no experience",
-        "limited time",
-        "urgent hiring",
-        "whatsapp only",
-        "telegram",
-        "click link"
-    ]
+    confidence = round(probability * 100, 2)
 
-    matched_keywords = [word for word in scam_keywords if word in job_lower]
-
-    score = len(matched_keywords)
-    confidence = min(score * 25, 100)
-
-    if score >= 1:
+    if prediction == 1:
         result = "SCAM DETECTED ⚠️"
         color = "danger"
     else:
         result = "SAFE JOB ✅"
         color = "success"
 
-    return result, color, confidence, matched_keywords
+    return result, color, confidence
 
 
 # ================= HOME =================
@@ -60,7 +45,7 @@ def login():
         username = request.form["username"]
         password = request.form["password"]
 
-        if username == "admin" and password == "1234":
+        if username == "sudhesh" and password == "260206":
             session["admin"] = True
             return redirect(url_for("admin"))
         else:
@@ -76,12 +61,12 @@ def logout():
     return redirect(url_for("login"))
 
 
-# ================= CHECK ROUTE =================
+# ================= CHECK ROUTE (ML) =================
 @app.route("/check", methods=["POST"])
 def check():
     job_text = request.form["job"]
 
-    result, color, confidence, matched_keywords = detect_scam(job_text)
+    result, color, confidence = detect_scam(job_text)
 
     now = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
 
@@ -93,7 +78,7 @@ def check():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             text TEXT,
             result TEXT,
-            confidence INTEGER,
+            confidence REAL,
             created_at TEXT
         )
     """)
@@ -111,7 +96,7 @@ def check():
                            color=color,
                            text=job_text,
                            confidence=confidence,
-                           matched=matched_keywords)
+                           matched=[])
 
 
 # ================= ADMIN DASHBOARD =================
@@ -174,7 +159,7 @@ def edit(id):
     return render_template("edit.html", row=row)
 
 
-# ================= UPDATE =================
+# ================= UPDATE (RECHECK USING ML) =================
 @app.route("/update/<int:id>", methods=["POST"])
 def update(id):
     if not session.get("admin"):
@@ -182,7 +167,7 @@ def update(id):
 
     new_text = request.form["job"]
 
-    result, _, confidence, _ = detect_scam(new_text)
+    result, _, confidence = detect_scam(new_text)
 
     conn = sqlite3.connect("history.db")
     cursor = conn.cursor()
