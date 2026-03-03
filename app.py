@@ -6,6 +6,7 @@ import csv
 from io import StringIO
 import joblib
 from werkzeug.security import generate_password_hash, check_password_hash
+import pytz
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
@@ -157,7 +158,8 @@ def check():
 
     job_text = request.form.get("job")
     result, color, confidence = detect_scam(job_text)
-    now = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+    india = pytz.timezone("Asia/Kolkata")
+    now = datetime.now(india).strftime("%d-%m-%Y %H:%M:%S")
 
     conn = sqlite3.connect("history.db")
     cursor = conn.cursor()
@@ -185,10 +187,16 @@ def history():
 
     conn = sqlite3.connect("history.db")
     cursor = conn.cursor()
-    cursor.execute(
-        "SELECT text, result, confidence, created_at FROM history WHERE user_id = ? ORDER BY id DESC",
-        (session["user_id"],)
-    )
+
+    cursor.execute("""
+        SELECT users.username, history.text, history.result,
+               history.confidence, history.created_at
+        FROM history
+        LEFT JOIN users ON history.user_id = users.id
+        WHERE history.user_id = ?
+        ORDER BY history.id DESC
+    """, (session["user_id"],))
+
     rows = cursor.fetchall()
     conn.close()
 
