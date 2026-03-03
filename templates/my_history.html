@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My History</title>
+</head>
+<body style="text-align:center; margin-top:50px; font-family:Arial;">
+
+    <h2>My Scan History</h2>
+
+    <table border="1" align="center">
+        <tr>
+            <th>Job</th>
+            <th>Result</th>
+            <th>Confidence</th>
+            <th>Date</th>
+        </tr>
+
+        {% for row in rows %}
+        <tr>
+            <td>{{ row[0][:40] }}...</td>
+            <td>{{ row[1] }}</td>
+            <td>{{ row[2] }}%</td>
+            <td>{{ row[3] }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <br><br>
+    <a href="/dashboard">Back to Dashboard</a>
+
+</body>
+</html>

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container mt-5">
+    <div class="card shadow p-4">
+        <h3 class="mb-4">🔍 Scan Job Description</h3>
+
+        <form method="POST" action="/check">
+            <div class="mb-3">
+                <textarea 
+                    name="job" 
+                    class="form-control" 
+                    rows="6" 
+                    placeholder="Paste job description here..." 
+                    required>
+                </textarea>
+            </div>
+
+            <button class="btn btn-primary">
+                Analyze Job
+            </button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

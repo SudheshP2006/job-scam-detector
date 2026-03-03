@@ -1,64 +1,59 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Admin Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body class="bg-light">
+{% extends "base.html" %}
+{% block content %}
 
 <div class="container mt-5">
 
-    <h2 class="mb-4">
-        📊 Admin Dashboard
-        <a href="/logout" class="btn btn-danger float-end">Logout</a>
-    </h2>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>📊 Admin Dashboard</h2>
+        <a href="/logout" class="btn btn-danger">Logout</a>
+    </div>
 
     <!-- STATS CARDS -->
-    <div class="row text-center mb-4">
-        <div class="col-md-3">
-            <div class="card p-3 shadow">
-                <h5>Total Checks</h5>
-                <h3>{{ total }}</h3>
-            </div>
-        </div>
+<div class="row text-center g-3 mb-4">
 
-        <div class="col-md-3">
-            <div class="card p-3 shadow bg-danger text-white">
-                <h5>Scam Jobs</h5>
-                <h3>{{ scam }}</h3>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <div class="card p-3 shadow bg-success text-white">
-                <h5>Safe Jobs</h5>
-                <h3>{{ safe }}</h3>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <div class="card p-3 shadow bg-warning">
-                <h5>Avg Confidence</h5>
-                <h3>{{ avg_conf }}%</h3>
-            </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm p-3">
+            <h6 class="text-muted small mb-1">Total Checks</h6>
+            <h4 class="fw-bold mb-0">{{ total }}</h4>
         </div>
     </div>
 
+    <div class="col-md-3">
+        <div class="card shadow-sm p-3 bg-danger text-white">
+            <h6 class="small mb-1">Scam Jobs</h6>
+            <h4 class="fw-bold mb-0">{{ scam }}</h4>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card shadow-sm p-3 bg-success text-white">
+            <h6 class="small mb-1">Safe Jobs</h6>
+            <h4 class="fw-bold mb-0">{{ safe }}</h4>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card shadow-sm p-3 bg-warning">
+            <h6 class="small mb-1">Avg Confidence</h6>
+            <h4 class="fw-bold mb-0">{{ avg_conf }}%</h4>
+        </div>
+    </div>
+
+</div>
     <!-- CHART -->
-    <div class="card p-4 shadow d-flex justify-content-center align-items-center">
-        <div style="width: 250px;">
-            <canvas id="myChart"></canvas>
-        </div>
+<div class="card shadow-sm p-3 mb-4 text-center">
+    <h6 class="mb-3">Detection Overview</h6>
+
+    <div style="position: relative; height:220px; width:220px; margin:auto;">
+        <canvas id="myChart"></canvas>
     </div>
+</div>
 
-    <!-- FULL HISTORY TABLE -->
-    <hr class="mt-5">
+    <!-- HISTORY TABLE -->
+    <h4 class="mb-3">📋 Full History</h4>
 
-    <h4 class="mt-4">📋 Full History</h4>
-
-    <div class="table-responsive mt-3">
-        <table class="table table-bordered table-striped">
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
             <thead class="table-dark">
                 <tr>
                     <th>ID</th>
@@ -72,24 +67,24 @@
                 {% for row in rows %}
                 <tr>
                     <td>{{ row[0] }}</td>
-                    <td>{{ row[1][:60] }}...</td>
+                    <td>{{ row[2][:60] }}...</td>
+
                     <td>
-                        {% if "SCAM" in row[2] %}
-                            <span class="badge bg-danger">{{ row[2] }}</span>
+                        {% if "SCAM" in row[3] %}
+                            <span class="badge bg-danger">{{ row[3] }}</span>
                         {% else %}
-                            <span class="badge bg-success">{{ row[2] }}</span>
+                            <span class="badge bg-success">{{ row[3] }}</span>
                         {% endif %}
                     </td>
-                    <td>{{ row[3] }}%</td>
-                    <td>
-                        <a href="/edit/{{ row[0] }}"
-                           class="btn btn-sm btn-warning">
-                           Edit
-                        </a>
 
+                    <td>
+                        <span class="fw-bold">{{ row[4] }}%</span>
+                    </td>
+
+                    <td>
                         <a href="/delete/{{ row[0] }}"
                            class="btn btn-sm btn-danger"
-                           onclick="return confirm('Are you sure you want to delete this entry?')">
+                           onclick="return confirm('Delete this record?')">
                            Delete
                         </a>
                     </td>
@@ -101,30 +96,43 @@
 
     <!-- BOTTOM BUTTONS -->
     <div class="d-flex justify-content-between mt-4">
-        <a href="/" class="btn btn-secondary">
-            Go Home
-        </a>
-
-        <a href="/export" class="btn btn-primary">
-            📥 Download CSV Report
-        </a>
+        <a href="/" class="btn btn-secondary">Go Home</a>
+        <a href="/export" class="btn btn-primary">📥 Download CSV</a>
     </div>
 
 </div>
 
+<!-- 🔥 GUARANTEED WORKING CHART SCRIPT -->
 <script>
-const ctx = document.getElementById('myChart');
+window.addEventListener('load', function () {
 
-new Chart(ctx, {
-    type: 'pie',
-    data: {
-        labels: ['Scam', 'Safe'],
-        datasets: [{
-            data: [{{ scam }}, {{ safe }}],
-        }]
-    }
+    const canvas = document.getElementById('myChart');
+
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Scam Jobs', 'Safe Jobs'],
+            datasets: [{
+                data: [{{ scam }}, {{ safe }}],
+                backgroundColor: ['#dc3545', '#198754']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top'
+                }
+            }
+        }
+    });
+
 });
 </script>
 
-</body>
-</html>
+{% endblock %}

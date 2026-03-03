@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container mt-5">
+    <h2 class="mb-4">Welcome, {{ username }}</h2>
+
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card shadow p-4 text-center">
+                <h5>Total Scans</h5>
+                <h2>{{ total_scans }}</h2>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow p-4 text-center">
+                <h5>Fake Jobs Detected</h5>
+                <h2>{{ fake_count }}</h2>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow p-4 text-center">
+                <h5>Safe Jobs</h5>
+                <h2>{{ real_count }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-5">
+        <a href="/scan" class="btn btn-primary me-2">Scan New Job</a>
+        <a href="/history" class="btn btn-outline-dark">View History</a>
+    </div>
+</div>
+
+{% endblock %}
