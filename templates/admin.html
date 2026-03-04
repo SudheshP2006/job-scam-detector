@@ -8,7 +8,7 @@
         <a href="/logout" class="btn btn-danger">Logout</a>
     </div>
 
-    <!-- STATS CARDS -->
+<!-- STATS CARDS -->
 <div class="row text-center g-3 mb-4">
 
     <div class="col-md-3">
@@ -40,7 +40,9 @@
     </div>
 
 </div>
-    <!-- CHART -->
+
+
+<!-- CHART -->
 <div class="card shadow-sm p-3 mb-4 text-center">
     <h6 class="mb-3">Detection Overview</h6>
 
@@ -49,90 +51,111 @@
     </div>
 </div>
 
-    <!-- HISTORY TABLE -->
-    <h4 class="mb-3">📋 Full History</h4>
 
-    <div class="table-responsive">
-        <table class="table table-bordered table-hover align-middle">
-            <thead class="table-dark">
-                <tr>
-                    <th>ID</th>
-                    <th>Job Text</th>
-                    <th>Result</th>
-                    <th>Confidence</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in rows %}
-                <tr>
-                    <td>{{ row[0] }}</td>
-                    <td>{{ row[2][:60] }}...</td>
+<!-- HISTORY TABLE -->
+<h4 class="mb-3">📋 Full History</h4>
 
-                    <td>
-                        {% if "SCAM" in row[3] %}
-                            <span class="badge bg-danger">{{ row[3] }}</span>
-                        {% else %}
-                            <span class="badge bg-success">{{ row[3] }}</span>
-                        {% endif %}
-                    </td>
+<div class="table-responsive">
+<table class="table table-bordered table-hover align-middle">
 
-                    <td>
-                        <span class="fw-bold">{{ row[4] }}%</span>
-                    </td>
+<thead class="table-dark">
+<tr>
+<th>ID</th>
+<th>User</th>
+<th>Job Text</th>
+<th>Result</th>
+<th>Confidence</th>
+<th>Action</th>
+</tr>
+</thead>
 
-                    <td>
-                        <a href="/delete/{{ row[0] }}"
-                           class="btn btn-sm btn-danger"
-                           onclick="return confirm('Delete this record?')">
-                           Delete
-                        </a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+<tbody>
 
-    <!-- BOTTOM BUTTONS -->
-    <div class="d-flex justify-content-between mt-4">
-        <a href="/" class="btn btn-secondary">Go Home</a>
-        <a href="/export" class="btn btn-primary">📥 Download CSV</a>
-    </div>
+{% for row in rows %}
+<tr>
+
+<td>{{ row[0] }}</td>
+
+<td>{{ row[1] }}</td>
+
+<td>{{ row[2][:60] }}...</td>
+
+<td>
+
+{% if "SCAM" in row[3] %}
+<span class="badge bg-danger">{{ row[3] }}</span>
+{% else %}
+<span class="badge bg-success">{{ row[3] }}</span>
+{% endif %}
+
+</td>
+
+<td>
+<span class="fw-bold">{{ row[4] }}%</span>
+</td>
+
+<td>
+<a href="/delete/{{ row[0] }}"
+class="btn btn-sm btn-danger"
+onclick="return confirm('Delete this record?')">
+Delete
+</a>
+</td>
+
+</tr>
+{% endfor %}
+
+</tbody>
+</table>
+</div>
+
+
+<!-- BOTTOM BUTTONS -->
+<div class="d-flex justify-content-between mt-4">
+<a href="/" class="btn btn-secondary">Go Home</a>
+<a href="/export" class="btn btn-primary">📥 Download CSV</a>
+</div>
 
 </div>
 
-<!-- 🔥 GUARANTEED WORKING CHART SCRIPT -->
+
+<!-- CHART SCRIPT -->
 <script>
+
 window.addEventListener('load', function () {
 
-    const canvas = document.getElementById('myChart');
+const canvas = document.getElementById('myChart');
 
-    if (!canvas) return;
+if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
+const ctx = canvas.getContext('2d');
 
-    new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Scam Jobs', 'Safe Jobs'],
-            datasets: [{
-                data: [{{ scam }}, {{ safe }}],
-                backgroundColor: ['#dc3545', '#198754']
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'top'
-                }
-            }
-        }
-    });
+new Chart(ctx, {
+type: 'doughnut',
+
+data: {
+labels: ['Scam Jobs', 'Safe Jobs'],
+
+datasets: [{
+data: [{{ scam }}, {{ safe }}],
+backgroundColor: ['#dc3545', '#198754']
+}]
+},
+
+options: {
+responsive: true,
+maintainAspectRatio: false,
+plugins: {
+legend: {
+position: 'top'
+}
+}
+}
 
 });
+
+});
+
 </script>
 
 {% endblock %}

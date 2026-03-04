@@ -5,22 +5,51 @@
     <div class="card shadow p-4">
         <h3 class="mb-4">🔍 Scan Job Description</h3>
 
-        <form method="POST" action="/check">
-            <div class="mb-3">
-                <textarea 
-                    name="job" 
-                    class="form-control" 
-                    rows="6" 
-                    placeholder="Paste job description here..." 
-                    required>
-                </textarea>
-            </div>
+```
+    <form method="POST" action="/check" enctype="multipart/form-data">
 
-            <button class="btn btn-primary">
-                Analyze Job
-            </button>
-        </form>
-    </div>
+        <!-- TEXT INPUT -->
+        <div class="mb-4">
+            <label class="form-label"><b>Paste Job Description</b></label>
+            <textarea 
+                name="job_text" 
+                class="form-control" 
+                rows="6" 
+                placeholder="Paste job description here...">
+            </textarea>
+        </div>
+
+        <hr>
+
+        <!-- IMAGE UPLOAD -->
+        <div class="mb-4">
+            <label class="form-label"><b>Upload Job Advertisement Image</b></label>
+            <input 
+                type="file" 
+                name="job_image" 
+                class="form-control">
+        </div>
+
+        <hr>
+
+        <!-- LINK INPUT -->
+        <div class="mb-4">
+            <label class="form-label"><b>Paste Job Link</b></label>
+            <input 
+                type="text" 
+                name="job_link" 
+                class="form-control"
+                placeholder="https://linkedin.com/jobs/...">
+        </div>
+
+        <button class="btn btn-primary">
+            Analyze Job
+        </button>
+
+    </form>
+</div>
+```
+
 </div>
 
 {% endblock %}
