@@ -8,6 +8,7 @@ from PIL import Image
 import requests
 from bs4 import BeautifulSoup
 from werkzeug.security import generate_password_hash, check_password_hash
+from urllib.parse import urlparse
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
@@ -17,12 +18,11 @@ model = joblib.load("model.pkl")
 vectorizer = joblib.load("vectorizer.pkl")
 
 # ================= TESSERACT PATH =================
-
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-
 
 # ================= INIT DATABASE =================
 def init_db():
+
     conn = sqlite3.connect("history.db")
     cursor = conn.cursor()
 
@@ -51,7 +51,6 @@ def init_db():
 
 init_db()
 
-
 # ================= ML DETECTION =================
 def detect_scam(job_text):
 
@@ -68,11 +67,42 @@ def detect_scam(job_text):
         return "SAFE JOB ✅", "success", confidence
 
 
+# ================= DOMAIN VERIFICATION =================
+def verify_company_domain(job_link):
+
+    trusted_domains = [
+        "amazon.com",
+        "google.com",
+        "microsoft.com",
+        "tcs.com",
+        "infosys.com",
+        "wipro.com",
+        "accenture.com",
+        "linkedin.com"
+    ]
+
+    try:
+
+        parsed = urlparse(job_link)
+        domain = parsed.netloc.lower()
+
+        for trusted in trusted_domains:
+            if trusted in domain:
+                return "Verified Company Domain ✅"
+
+        return "Suspicious Domain ⚠️"
+
+    except:
+        return "Domain Check Failed"
+
+
 # ================= HOME =================
 @app.route("/")
 def home():
+
     if not session.get("user_id"):
         return redirect(url_for("login"))
+
     return redirect(url_for("dashboard"))
 
 
@@ -183,17 +213,28 @@ def check():
     job_link = request.form.get("job_link")
     job_image = request.files.get("job_image")
 
+    domain_status = "Unknown"
+
     # IMAGE OCR
     if job_image and job_image.filename != "":
         image = Image.open(job_image)
         job_text = pytesseract.image_to_string(image)
 
-    # LINK SCRAPING
+    # LINK INPUT
     elif job_link:
-        page = requests.get(job_link)
-        soup = BeautifulSoup(page.text, "html.parser")
-        job_text = soup.get_text()
 
+        domain_status = verify_company_domain(job_link)
+
+        try:
+            page = requests.get(job_link, timeout=5)
+
+            soup = BeautifulSoup(page.text, "html.parser")
+            job_text = soup.get_text()
+
+        except requests.exceptions.RequestException:
+            job_text = "Unable to fetch job description from link."
+
+    # TEXT INPUT
     elif job_text:
         job_text = job_text
 
@@ -221,7 +262,8 @@ def check():
         result=result,
         color=color,
         text=job_text,
-        confidence=confidence
+        confidence=confidence,
+        domain_status=domain_status
     )
 
 
@@ -243,7 +285,6 @@ def history():
     """,(session["user_id"],))
 
     rows = cursor.fetchall()
-
     conn.close()
 
     return render_template("my_history.html", rows=rows)
@@ -259,6 +300,7 @@ def admin_login():
         password = request.form.get("password")
 
         if username == "sudhesh" and password == "260206":
+
             session["admin"] = True
             return redirect(url_for("admin_dashboard"))
 
@@ -295,11 +337,7 @@ def admin_dashboard():
     scam = len([r for r in rows if "SCAM" in str(r[3])])
     safe = len([r for r in rows if "SAFE" in str(r[3])])
 
-    # average confidence
-    if total > 0:
-        avg_conf = round(sum(r[4] for r in rows) / total, 2)
-    else:
-        avg_conf = 0
+    avg_conf = round(sum(r[4] for r in rows) / total, 2) if total > 0 else 0
 
     conn.close()
 
@@ -312,9 +350,26 @@ def admin_dashboard():
         avg_conf=avg_conf
     )
 
+
+# ================= DELETE RECORD =================
+@app.route("/delete/<int:id>")
+def delete(id):
+
+    conn = sqlite3.connect("history.db")
+    cursor = conn.cursor()
+
+    cursor.execute("DELETE FROM history WHERE id=?", (id,))
+
+    conn.commit()
+    conn.close()
+
+    return redirect(url_for("admin_dashboard"))
+
+
 # ================= LOGOUT =================
 @app.route("/logout")
 def logout():
+
     session.clear()
     return redirect(url_for("login"))
 
